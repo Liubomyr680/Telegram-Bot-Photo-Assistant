@@ -1,21 +1,23 @@
 package com.example.telegrambot.component;
 
+import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.service.UserStateService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
+import java.util.List;
 import java.util.Objects;
 
 @Component
 public class MessageHandler {
 
-    private final ChatClient chatClient;
+    private final List<UserStateHandler> stateHandlers;
     private final UserStateService userStateService;
 
-    public MessageHandler(ChatClient.Builder chatClientBuilder, UserStateService userStateService) {
-        this.chatClient = chatClientBuilder.build();
+    public MessageHandler(List<UserStateHandler> stateHandlers, UserStateService userStateService) {
+        this.stateHandlers = stateHandlers;
         this.userStateService = userStateService;
     }
 
@@ -55,44 +57,10 @@ public class MessageHandler {
             default -> {
                 String state = userStateService.getUserState(chatId);
 
-                if ("GEAR_CHAT_MODE".equals(state)) {
-                    // Крок 1: запит на перевірку тематики
-                    String checkPrompt = """
-            Коротко: це питання стосується фототехніки (наприклад, камери, об'єктиви, освітлення)?
-            Відповідай лише: так або ні.
-            Питання: %s
-            """.formatted(messageText);
-
-                    String relevanceAnswer = Objects.requireNonNull(chatClient.prompt()
-                                    .user(checkPrompt)
-                                    .call()
-                                    .content())
-                            .trim()
-                            .toLowerCase();
-
-                    if (!relevanceAnswer.contains("так")) {
-                        SendMessage msg = new SendMessage(chatId,
-                                "📌 Це питання не стосується фототехніки.\nЯ можу допомогти лише з технічними порадами 📷");
-                        msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
-                        yield msg;
+                for (UserStateHandler handler : stateHandlers) {
+                    if (handler.supports(state)) {
+                        yield handler.handle(chatId, messageText);
                     }
-
-                    // Крок 2: нормальний запит до AI
-                    String advicePrompt = """
-            Ти — професійний фото-консультант. Відповідай українською.
-            Порадь фототехніку (камеру, об'єктив, світло) для зйомки типу: %s.
-            Відповідь чітко структурована, не більше 150 слів.
-            """.formatted(messageText);
-
-                    String aiReply = chatClient.prompt()
-                            .user(advicePrompt)
-                            .call()
-                            .content();
-
-                    assert aiReply != null;
-                    SendMessage msg = new SendMessage(chatId, aiReply);
-                    msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
-                    yield msg;
                 }
 
                 SendMessage msg = new SendMessage(chatId,
