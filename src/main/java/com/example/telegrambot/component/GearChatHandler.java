@@ -2,6 +2,7 @@ package com.example.telegrambot.component;
 
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
+import com.example.telegrambot.prompts.PromptTemplates;
 import com.example.telegrambot.record.ChatMessage;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
@@ -16,7 +17,6 @@ public class GearChatHandler implements UserStateHandler {
 
     private final ChatClient chatClient;
     private final GearChatMemoryService memoryService;
-    private static final ChatMessage SYSTEM_PROMPT = new ChatMessage("system", "Ти — професійний фото-консультант. Відповідай українською. Всі відповіді мають бути не більше 200 слів. Використовуй чітку структуру: Камера, Об'єктив, Світло, Фон. Якщо користувач ставить уточнення по одній секції — відповідай лише по ній.");
 
     public GearChatHandler(ChatClient.Builder builder, GearChatMemoryService memoryService) {
         this.chatClient = builder.build();
@@ -30,11 +30,7 @@ public class GearChatHandler implements UserStateHandler {
 
     @Override
     public SendMessage handle(String chatId, String messageText) {
-        String checkPrompt = """
-            Коротко: це питання стосується фототехніки (наприклад, камери, об'єктиви, освітлення, фон)?
-            Відповідай лише: так або ні.
-            Питання: %s
-            """.formatted(messageText);
+        String checkPrompt = PromptTemplates.buildRelevancePrompt(messageText);
 
         String relevanceAnswer = Objects.requireNonNull(chatClient.prompt()
                         .user(checkPrompt)
@@ -77,6 +73,9 @@ public class GearChatHandler implements UserStateHandler {
         msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
         return msg;
     }
+
+    private static final ChatMessage SYSTEM_PROMPT =
+            new ChatMessage("system", PromptTemplates.SYSTEM_PROMPT);
 }
 
 
