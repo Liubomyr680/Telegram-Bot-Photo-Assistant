@@ -13,12 +13,19 @@ import java.util.Objects;
 @Component
 public class MessageHandler {
 
+
     private final List<UserStateHandler> stateHandlers;
     private final UserStateService userStateService;
+    private final GearChatMemoryService gearChatMemoryService;
 
-    public MessageHandler(List<UserStateHandler> stateHandlers, UserStateService userStateService) {
+    public MessageHandler(
+            List<UserStateHandler> stateHandlers,
+            UserStateService userStateService,
+            GearChatMemoryService gearChatMemoryService
+    ) {
         this.stateHandlers = stateHandlers;
         this.userStateService = userStateService;
+        this.gearChatMemoryService = gearChatMemoryService;
     }
 
     public SendMessage handleTextMessage(String chatId, String messageText) {
@@ -49,6 +56,8 @@ public class MessageHandler {
 
             case "↩ Вийти з режиму" -> {
                 userStateService.clearUserState(chatId);
+                gearChatMemoryService.clearMemory(chatId); // clear chat memory  after Exit
+
                 SendMessage msg = new SendMessage(chatId, "✅ Ви вийшли з режиму консультації.");
                 msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
                 yield msg;

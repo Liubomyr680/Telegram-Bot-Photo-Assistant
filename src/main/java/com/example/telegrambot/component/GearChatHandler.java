@@ -2,19 +2,25 @@ package com.example.telegrambot.component;
 
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
+import com.example.telegrambot.record.ChatMessage;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Component
 public class GearChatHandler implements UserStateHandler {
 
     private final ChatClient chatClient;
+    private final GearChatMemoryService memoryService;
+    private static final ChatMessage SYSTEM_PROMPT = new ChatMessage("system", "Ти — професійний фото-консультант. Відповідай українською. Всі відповіді мають бути не більше 200 слів. Використовуй чітку структуру: Камера, Об'єктив, Світло, Фон. Якщо користувач ставить уточнення по одній секції — відповідай лише по ній.");
 
-    public GearChatHandler(ChatClient.Builder chatClientBuilder) {
-        this.chatClient = chatClientBuilder.build();
+    public GearChatHandler(ChatClient.Builder builder, GearChatMemoryService memoryService) {
+        this.chatClient = builder.build();
+        this.memoryService = memoryService;
     }
 
     @Override
@@ -44,23 +50,51 @@ public class GearChatHandler implements UserStateHandler {
             return msg;
         }
 
-        // Крок 2: нормальний запит до AI
-        String advicePrompt = """
-            Ти — професійний фото-консультант. Відповідай українською.
-            Порадь фототехніку (камеру, об'єктив, світло) для зйомки типу: %s.
-            Відповідь чітко структурована, Якщо користувач задає додаткове птиання по якійсь із секцій,
-            (наприклад, камери, об'єктиви, освітлення, фон) то давай відповідь тільки по цій секції, не потрібно знов розписувати про кожну з них.
-            Всі відповіді повинні бути не більше 120 слів.
-            """.formatted(messageText);
+        List<ChatMessage> history = memoryService.getMessages(chatId);
 
-        String aiReply = chatClient.prompt()
-                .user(advicePrompt)
+        // Перевірка, чи system-повідомлення вже є. Якщо ні — додаємо.
+        if (history.stream().noneMatch(m -> m.role().equals("system"))) {
+            memoryService.addMessage(chatId, SYSTEM_PROMPT);
+            history.add(0, SYSTEM_PROMPT);
+        }
+
+        // Додаємо нове питання користувача
+        history.add(new ChatMessage("user", messageText));
+
+        String fullPrompt = history.stream()
+                .map(m -> m.role() + ": " + m.content())
+                .collect(Collectors.joining("\n"));
+
+        String aiReply = Objects.requireNonNull(chatClient.prompt()
+                .user(fullPrompt)
                 .call()
-                .content();
+                .content());
 
-        assert aiReply != null;
+        memoryService.addMessage(chatId, new ChatMessage("user", messageText));
+        memoryService.addMessage(chatId, new ChatMessage("assistant", aiReply));
+
         SendMessage msg = new SendMessage(chatId, aiReply);
         msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
         return msg;
     }
 }
+
+
+//        // Крок 2: нормальний запит до AI
+//        String advicePrompt = """
+//            Ти — професійний фото-консультант. Відповідай українською.
+//            Порадь фототехніку (камеру, об'єктив, світло) для зйомки типу: %s.
+//            Відповідь чітко структурована, Якщо користувач задає додаткове птиання по якійсь із секцій,
+//            (наприклад, камери, об'єктиви, освітлення, фон) то давай відповідь тільки по цій секції, не потрібно знов розписувати про кожну з них.
+//            Всі відповіді повинні бути не більше 120 слів.
+//            """.formatted(messageText);
+//
+//        String aiReply = chatClient.prompt()
+//                .user(advicePrompt)
+//                .call()
+//                .content();
+//
+//        assert aiReply != null;
+//        SendMessage msg = new SendMessage(chatId, aiReply);
+//        msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
+//        return msg;
