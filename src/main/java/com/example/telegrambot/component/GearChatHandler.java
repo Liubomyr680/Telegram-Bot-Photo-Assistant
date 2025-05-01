@@ -77,23 +77,3 @@ public class GearChatHandler implements UserStateHandler {
     private static final ChatMessage SYSTEM_PROMPT =
             new ChatMessage("system", PromptTemplates.SYSTEM_PROMPT);
 }
-
-
-//        // Крок 2: нормальний запит до AI
-//        String advicePrompt = """
-//            Ти — професійний фото-консультант. Відповідай українською.
-//            Порадь фототехніку (камеру, об'єктив, світло) для зйомки типу: %s.
-//            Відповідь чітко структурована, Якщо користувач задає додаткове птиання по якійсь із секцій,
-//            (наприклад, камери, об'єктиви, освітлення, фон) то давай відповідь тільки по цій секції, не потрібно знов розписувати про кожну з них.
-//            Всі відповіді повинні бути не більше 120 слів.
-//            """.formatted(messageText);
-//
-//        String aiReply = chatClient.prompt()
-//                .user(advicePrompt)
-//                .call()
-//                .content();
-//
-//        assert aiReply != null;
-//        SendMessage msg = new SendMessage(chatId, aiReply);
-//        msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
-//        return msg;

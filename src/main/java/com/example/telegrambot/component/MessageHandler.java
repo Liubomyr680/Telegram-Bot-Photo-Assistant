@@ -3,12 +3,10 @@ package com.example.telegrambot.component;
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.service.UserStateService;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 import java.util.List;
-import java.util.Objects;
 
 @Component
 public class MessageHandler {
