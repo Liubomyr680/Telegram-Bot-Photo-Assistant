@@ -1,12 +1,17 @@
 package com.example.telegrambot.component;
 
-import com.example.telegrambot.record.ChatMessage;
+import com.example.telegrambot.dto.ChatMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 
+import static org.springframework.util.StringUtils.truncate;
+
 @Component
 public class GearChatMemoryService {
+    private static final Logger logger = LoggerFactory.getLogger(GearChatMemoryService.class);
 
     private static final int MAX_HISTORY = 5;
     private final Map<String, List<ChatMessage>> memory = new HashMap<>();
@@ -21,10 +26,12 @@ public class GearChatMemoryService {
 
         // Видаляємо найстаріше не-system повідомлення, якщо перевищено ліміт
         if (countNonSystemMessages(chatHistory) >= MAX_HISTORY) {
+            logger.debug("History limit exceeded. Attempting to remove oldest non-critical message.");
             removeOldestNonCritical(chatHistory);
         }
 
         chatHistory.add(message);
+        logger.debug("[{}] Added new message: role={}, content='{}'", chatId, message.role(), truncate(message.content()));
     }
 
     private int countNonSystemMessages(List<ChatMessage> history) {
@@ -39,6 +46,7 @@ public class GearChatMemoryService {
             if (!m.role().equals("system")) {
                 boolean isFirstUser = i == 1 && history.get(0).role().equals("system");
                 if (!isFirstUser) {
+                    logger.debug("Removing oldest non-critical message: role={}, content='{}'", m.role(), truncate(m.content()));
                     history.remove(i);
                     break;
                 }
@@ -52,5 +60,6 @@ public class GearChatMemoryService {
 
     public void clearMemory(String chatId) {
         memory.remove(chatId);
+        logger.debug("[{}] Chat history cleared.", chatId);
     }
 }

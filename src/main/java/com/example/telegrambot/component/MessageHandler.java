@@ -3,6 +3,8 @@ package com.example.telegrambot.component;
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.service.UserStateService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
@@ -11,6 +13,7 @@ import java.util.List;
 @Component
 public class MessageHandler {
 
+    private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
 
     private final List<UserStateHandler> stateHandlers;
     private final UserStateService userStateService;
@@ -27,34 +30,62 @@ public class MessageHandler {
     }
 
     public SendMessage handleTextMessage(String chatId, String messageText) {
+        logger.info("Received message from [{}]: {}", chatId, messageText);
+
         return switch (messageText) {
 
-            case "📸 Редагування Фото" -> new SendMessage(chatId,
-                    "Надішліть фото, яке потрібно відредагувати 📷");
+            case "📸 Редагування Фото" -> {
+                logger.debug("User [{}] selected: Редагування Фото", chatId);
 
-            case "🎯 Ідеї для фотосесії" -> new SendMessage(chatId,
-                    "Напишіть тему або побажання для фотосесії 📝");
+                yield new SendMessage(chatId,
+                        "Надішліть фото, яке потрібно відредагувати 📷");
+            }
 
-            case "🧠 AI-аналіз Фото" -> new SendMessage(chatId,
-                    "Надішліть фото для аналізу якості 🧐");
+            case "🎯 Ідеї для фотосесії" -> {
+                logger.debug("User [{}] selected: Ідеї для фотосесії", chatId);
 
-            case "🏷️ Хештеги та Опис" -> new SendMessage(chatId,
-                    "Надішліть ключові слова або фото для генерації опису та хештегів 📄");
+                yield new SendMessage(chatId,
+                        "Напишіть тему або побажання для фотосесії 📝");
+            }
 
-            case "💰 Прайс-калькулятор" -> new SendMessage(chatId,
-                    "Введіть тип зйомки та тривалість (наприклад: 'весілля 3 години') 💵");
+            case "🧠 AI-аналіз Фото" -> {
+                logger.debug("User [{}] selected: AI-аналіз Фото", chatId);
+
+                yield new SendMessage(chatId,
+                        "Надішліть фото для аналізу якості 🤔");
+            }
+
+            case "🍿 Хештеги та Опис" -> {
+                logger.debug("User [{}] selected: Хештеги та Опис", chatId);
+
+                yield new SendMessage(chatId,
+                        "Надішліть ключові слова або фото для генерації опису та хештегів 📄");
+            }
+
+            case "💰 Прайс-калькулятор" -> {
+                logger.debug("User [{}] selected: Прайс-калькулятор", chatId);
+
+                yield new SendMessage(chatId,
+                        "Введіть тип зйомки та тривалість (наприклад: 'весілля 3 години') 💵");
+            }
 
             case "📷 Підказки по Обладнанню" -> {
+                logger.debug("User [{}] entered GEAR_CHAT_MODE", chatId);
+
                 userStateService.setUserState(chatId, "GEAR_CHAT_MODE");
                 SendMessage msg = new SendMessage(chatId,
-                        "💬 Ви увійшли в режим консультації по техніці. Напишіть своє питання:");
+                        "💬 Ви увійшли в режим консультації по техніці. " +
+                                "Напишіть тип зйомки (наприклад: весілля, портрет, зйомка в студії і т.д.).\n" +
+                                "А я підкажу, яке фотообладнання вам найкраще підійде (камера, об’єктив, освітлення, фон).");
                 msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
                 yield msg;
             }
 
             case "↩ Вийти з режиму" -> {
+                logger.debug("User [{}] exited GEAR_CHAT_MODE", chatId);
+
                 userStateService.clearUserState(chatId);
-                gearChatMemoryService.clearMemory(chatId); // clear chat memory  after Exit
+                gearChatMemoryService.clearMemory(chatId);
 
                 SendMessage msg = new SendMessage(chatId, "✅ Ви вийшли з режиму консультації.");
                 msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
@@ -63,12 +94,16 @@ public class MessageHandler {
 
             default -> {
                 String state = userStateService.getUserState(chatId);
+                logger.debug("User [{}] in state: {}", chatId, state);
 
                 for (UserStateHandler handler : stateHandlers) {
                     if (handler.supports(state)) {
+                        logger.debug("Delegating to handler: {}", handler.getClass().getSimpleName());
                         yield handler.handle(chatId, messageText);
                     }
                 }
+
+                logger.warn("User [{}] sent unrecognized message outside any handler: {}", chatId, messageText);
 
                 SendMessage msg = new SendMessage(chatId,
                         "🤖 Я поки що розумію тільки команди або натиснення кнопок.");

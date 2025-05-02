@@ -9,6 +9,8 @@ public class PromptTemplates {
         Якщо користувач ставить уточнення по одній секції — відповідай лише по ній.
         """;
 
+    //TODO edit prompt so the responses should be more accurate
+
     public static String buildRelevancePrompt(String userMessage) {
         return """
             Коротко: це питання стосується фототехніки (наприклад, камери, об'єктиви, освітлення, фон)?

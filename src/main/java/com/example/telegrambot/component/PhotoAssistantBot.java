@@ -1,6 +1,8 @@
 package com.example.telegrambot.component;
 
 import com.example.telegrambot.keyboard.KeyboardFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
@@ -10,6 +12,8 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 
 @Component
 public class PhotoAssistantBot extends TelegramLongPollingBot {
+
+    private static final Logger logger = LoggerFactory.getLogger(PhotoAssistantBot.class);
 
     private final String botUsername;
     private final String botToken;
@@ -32,10 +36,14 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
             String userText = update.getMessage().getText();
             String chatId = update.getMessage().getChatId().toString();
 
+//            logger.info("Received message from [{}]: {}", chatId, userText);
+
             SendMessage response;
 
             switch (userText) {
                 case "/start" -> {
+                    logger.debug("User [{}] triggered /start command", chatId);
+
                     response = new SendMessage(chatId,
                             "👋 Вітаю у PicMentorBot!\n\n" +
                                     "Я допоможу вам у світі фотографії! 📸\n" +
@@ -49,10 +57,12 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
                 }
 
                 case "/help" -> {
+                    logger.debug("User [{}] triggered /help command", chatId);
                     response = new SendMessage(chatId, "📋 Доступні команди:\n/start - Почати роботу\n/help - Допомога");
                 }
 
                 default -> {
+                    logger.debug("User [{}] sent message for processing: {}", chatId, userText);
                     response = messageHandler.handleTextMessage(chatId, userText);
                 }
             }
@@ -65,7 +75,7 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Failed to send message: {}", message.getText(), e);
         }
     }
 
@@ -79,3 +89,4 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
         return botToken;
     }
 }
+
