@@ -1,5 +1,6 @@
 package com.example.telegrambot.component;
 
+import com.example.telegrambot.interfaces.PhotoInputHandler;
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.service.UserStateService;
@@ -7,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.util.List;
 
@@ -55,11 +57,13 @@ public class MessageHandler {
                         "Надішліть фото для аналізу якості 🤔");
             }
 
-            case "🍿 Хештеги та Опис" -> {
-                logger.debug("User [{}] selected: Хештеги та Опис", chatId);
-
-                yield new SendMessage(chatId,
-                        "Надішліть ключові слова або фото для генерації опису та хештегів 📄");
+            case "🏷️ Хештеги та Опис" -> {
+                userStateService.setUserState(chatId, "CAPTION_MODE");
+                SendMessage msg = new SendMessage(chatId, """
+            ✍️ Надішліть текст або фото (або і те, і те), і я згенерую опис + релевантні хештеги.
+            """);
+                msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
+                yield msg;
             }
 
             case "💰 Прайс-калькулятор" -> {
@@ -111,5 +115,25 @@ public class MessageHandler {
                 yield msg;
             }
         };
+    }
+
+    public SendMessage handlePhotoMessage(String chatId, Message message) {
+        logger.info("Received photo from [{}]", chatId);
+
+        String state = userStateService.getUserState(chatId);
+        logger.debug("Current user state for [{}]: {}", chatId, state);
+
+        for (UserStateHandler handler : stateHandlers) {
+            if (handler.supports(state) && handler instanceof PhotoInputHandler photoHandler) {
+                logger.debug("Delegating photo to handler: {}", handler.getClass().getSimpleName());
+                return photoHandler.handlePhoto(chatId, message);
+            }
+        }
+
+        logger.warn("Received photo from [{}] but no handler matched.", chatId);
+        SendMessage msg = new SendMessage(chatId,
+                "📷 Надіслане фото не оброблено. Будь ласка, оберіть режим у меню.");
+        msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
+        return msg;
     }
 }

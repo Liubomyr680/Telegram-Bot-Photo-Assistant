@@ -48,6 +48,7 @@ public class GearChatHandler implements UserStateHandler {
 
         if (!relevanceAnswer.contains("так")) {
             log.info("⚠Message deemed irrelevant to gear context.");
+
             SendMessage msg = new SendMessage(chatId,
                     "📌 Це питання не стосується фототехніки.\nЯ можу допомогти лише з технічними порадами 📷");
             msg.setReplyMarkup(KeyboardFactory.exitKeyboard());

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 @Component
@@ -32,42 +33,47 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            String userText = update.getMessage().getText();
-            String chatId = update.getMessage().getChatId().toString();
+        if (update.hasMessage()) {
+            Message message = update.getMessage();
+            String chatId = message.getChatId().toString();
 
-//            logger.info("Received message from [{}]: {}", chatId, userText);
+            if (message.hasText()) {
+                String userText = message.getText();
+                logger.debug("User [{}] sent message: {}", chatId, userText);
 
-            SendMessage response;
+                SendMessage response;
+                switch (userText) {
+                    case "/start" -> {
+                        logger.debug("User [{}] triggered /start command", chatId);
 
-            switch (userText) {
-                case "/start" -> {
-                    logger.debug("User [{}] triggered /start command", chatId);
+                        response = new SendMessage(chatId,
+                                "👋 Вітаю у PicMentorBot!\n\n" +
+                                        "Я допоможу вам у світі фотографії! 📸\n" +
+                                        "Оберіть функцію нижче для початку 👇");
+                        executeSafe(response);
 
-                    response = new SendMessage(chatId,
-                            "👋 Вітаю у PicMentorBot!\n\n" +
-                                    "Я допоможу вам у світі фотографії! 📸\n" +
-                                    "Оберіть функцію нижче для початку 👇");
-                    executeSafe(response);
-
-                    SendMessage menuMessage = new SendMessage(chatId, "Оберіть функцію:");
-                    menuMessage.setReplyMarkup(KeyboardFactory.mainKeyboard());
-                    executeSafe(menuMessage);
-                    return;
+                        SendMessage menuMessage = new SendMessage(chatId, "Оберіть функцію:");
+                        menuMessage.setReplyMarkup(KeyboardFactory.mainKeyboard());
+                        executeSafe(menuMessage);
+                        return;
+                    }
+                    case "/help" -> {
+                        logger.debug("User [{}] triggered /help command", chatId);
+                        response = new SendMessage(chatId, "📋 Доступні команди:\n/start - Почати роботу\n/help - Допомога");
+                    }
+                    default -> {
+                        logger.debug("User [{}] sent message for processing: {}", chatId, userText);
+                        response = messageHandler.handleTextMessage(chatId, userText);
+                    }
                 }
 
-                case "/help" -> {
-                    logger.debug("User [{}] triggered /help command", chatId);
-                    response = new SendMessage(chatId, "📋 Доступні команди:\n/start - Почати роботу\n/help - Допомога");
-                }
+                executeSafe(response);
 
-                default -> {
-                    logger.debug("User [{}] sent message for processing: {}", chatId, userText);
-                    response = messageHandler.handleTextMessage(chatId, userText);
-                }
+            } else if (message.hasPhoto()) {
+                logger.debug("User [{}] sent a photo", chatId);
+                SendMessage response = messageHandler.handlePhotoMessage(chatId, message);
+                executeSafe(response);
             }
-
-            executeSafe(response);
         }
     }
 
