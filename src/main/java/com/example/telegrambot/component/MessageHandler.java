@@ -1,5 +1,6 @@
 package com.example.telegrambot.component;
 
+import com.example.telegrambot.enums.UserState;
 import com.example.telegrambot.interfaces.PhotoInputHandler;
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
@@ -44,61 +45,25 @@ public class MessageHandler {
 
             case "🧠 AI-аналіз Фото" -> new SendMessage(chatId, "Надішліть фото для аналізу якості 🤔");
 
-            case "🏷️ Хештеги та Опис" -> {
-                userStateService.setUserState(chatId, "CAPTION_MODE");
-                SendMessage msg = new SendMessage(chatId, """
-                        ✍️ Надішліть фото, а я згенерую опис + релевантні хештеги.
-                        """);
-                msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
-                yield msg;
-            }
+            case "🏷️ Хештеги та Опис" -> handleCaptionMode(chatId);
+
             case "💰 Прайс-калькулятор" ->
                     new SendMessage(chatId, "Введіть тип зйомки та тривалість (наприклад: 'весілля 3 години') 💵");
 
-            case "📷 Підказки по Обладнанню" -> {
-                userStateService.setUserState(chatId, "GEAR_CHAT_MODE");
-                SendMessage msg = new SendMessage(chatId, """
-                        💬 Ви увійшли в режим консультації по техніці.
-                        Напишіть тип зйомки (наприклад: весілля, портрет, зйомка в студії і т.д.).
-                        А я підкажу, яке фотообладнання вам найкраще підійде (камера, об’єктив, освітлення, фон).
-                        """);
-                msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
-                yield msg;
-            }
-            case "↩ Вийти з режиму" -> {
-                userStateService.clearUserState(chatId);
-                gearChatMemoryService.clearMemory(chatId);
-                SendMessage msg = new SendMessage(chatId, "✅ Ви вийшли з режиму консультації.");
-                msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
-                yield msg;
-            }
-            default -> {
-                String state = userStateService.getUserState(chatId);
+            case "📷 Підказки по Обладнанню" -> handleGearChatMode(chatId);
 
-                if (state.equals("CAPTION_MODE")) {
-                    yield new SendMessage(chatId,
-                            "📷 Я можу створити опис тільки для фото. Будь ласка, надішліть зображення.");
-                }
+            case "↩ Вийти з режиму" -> handleExitMode(chatId);
 
-                for (UserStateHandler handler : stateHandlers) {
-                    if (handler.supports(state)) {
-                        yield handler.handle(chatId, messageText);
-                    }
-                }
-                SendMessage msg = new SendMessage(chatId,
-                        "🤖 Я поки що розумію тільки команди або натиснення кнопок.");
-                msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
-                yield msg;
-            }
+            default -> handleFallback(chatId, messageText);
         };
     }
 
     public SendMessage handlePhotoMessage(String chatId, Message message) {
         logger.info("Received photo from [{}]", chatId);
 
-        String state = userStateService.getUserState(chatId);
+        UserState state = userStateService.getUserState(chatId);
         for (PhotoInputHandler handler : photoHandlers) {
-            if (handler.supports(state)) {
+            if (handler.supports(state.name())) {
                 logger.debug("Delegating photo to handler: {}", handler.getClass().getSimpleName());
                 return handler.handlePhoto(chatId, message);
             }
@@ -110,4 +75,52 @@ public class MessageHandler {
         msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
         return msg;
     }
+
+    private SendMessage handleCaptionMode(String chatId) {
+        userStateService.setUserState(chatId, UserState.CAPTION_MODE);
+        SendMessage msg = new SendMessage(chatId, """
+                        ✍️ Надішліть фото, а я згенерую опис + релевантні хештеги.
+                        """);
+        msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
+        return msg;
+    }
+
+    private SendMessage handleGearChatMode(String chatId) {
+        userStateService.setUserState(chatId, UserState.GEAR_CHAT_MODE);
+        SendMessage msg = new SendMessage(chatId, """
+                        💬 Ви увійшли в режим консультації по техніці.
+                        Напишіть тип зйомки (наприклад: весілля, портрет, зйомка в студії і т.д.).
+                        А я підкажу, яке фотообладнання вам найкраще підійде (камера, об’єктив, освітлення, фон).
+                        """);
+        msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
+        return msg;
+    }
+
+    private SendMessage handleExitMode(String chatId){
+        userStateService.clearUserState(chatId);
+        gearChatMemoryService.clearMemory(chatId);
+        SendMessage msg = new SendMessage(chatId, "✅ Ви вийшли з режиму консультації.");
+        msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
+        return msg;
+    }
+
+    private SendMessage handleFallback(String chatId, String messageText) {
+        UserState state = userStateService.getUserState(chatId);
+
+        if (state == UserState.CAPTION_MODE) {
+            return new SendMessage(chatId,
+                    "📷 Я можу створити опис тільки для фото. Будь ласка, надішліть зображення.");
+        }
+
+        for (UserStateHandler handler : stateHandlers) {
+            if (handler.supports(state.name())) {
+                return handler.handle(chatId, messageText);
+            }
+        }
+        SendMessage msg = new SendMessage(chatId,
+                "🤖 Я поки що розумію тільки команди або натиснення кнопок.");
+        msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
+        return msg;
+    }
+
 }
