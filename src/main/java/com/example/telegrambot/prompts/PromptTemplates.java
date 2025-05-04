@@ -17,8 +17,6 @@ public class PromptTemplates {
             Додай 5–7 релевантних в Instagram українських хештегів.
             Оптимізуй стиль під Instagram.""";
 
-    //TODO edit prompt so the responses should be more accurate
-
     public static String buildRelevancePrompt(String userMessage) {
         return """
                 Коротко: це питання стосується фототехніки (наприклад, камери, об'єктиви, освітлення, фон)?

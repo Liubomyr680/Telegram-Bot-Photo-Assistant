@@ -55,7 +55,7 @@ public class OpenAiVisionService {
             ObjectMapper objectMapper = new ObjectMapper();
             OpenAiResponse aiResponse = objectMapper.readValue(response.getBody(), OpenAiResponse.class);
 
-            return aiResponse.getChoices().get(0).getMessage().getContent();
+            return aiResponse.choices().get(0).message().content();
 
         } catch (Exception e) {
             logger.error("Error generating caption from OpenAI", e);
