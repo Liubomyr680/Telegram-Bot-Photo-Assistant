@@ -40,7 +40,7 @@ public class OpenAiVisionService {
                                     )
                             )
                     ),
-                    "max_tokens", 100,
+                    "max_tokens", 300,
                     "temperature", 0.7
             );
 

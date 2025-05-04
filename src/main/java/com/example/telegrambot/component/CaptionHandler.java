@@ -34,22 +34,6 @@ public class CaptionHandler implements PhotoInputHandler {
     }
 
     @Override
-    public SendMessage handle(String chatId, String messageText) {
-        logger.info("Handling plain text in caption mode for [{}]", chatId);
-
-        String prompt = """
-                Це опис до фотосесії. Згенеруй короткий опис українською мовою і додай релевантні хештеги.
-                Не вигадуй інформації, описуй лише те, що бачиш. Текст користувача: %s
-                """.formatted(messageText);
-
-        String aiReply = openAiVisionService.generateCaptionFromImageUrl(prompt);
-
-        SendMessage response = new SendMessage(chatId, aiReply);
-        response.setReplyMarkup(KeyboardFactory.exitKeyboard());
-        return response;
-    }
-
-    @Override
     public SendMessage handlePhoto(String chatId, Message message) {
         logger.info("Handling photo input from [{}]", chatId);
 

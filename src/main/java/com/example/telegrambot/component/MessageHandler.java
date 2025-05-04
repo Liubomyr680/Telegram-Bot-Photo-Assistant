@@ -18,15 +18,18 @@ public class MessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
 
     private final List<UserStateHandler> stateHandlers;
+    private final List<PhotoInputHandler> photoHandlers;
     private final UserStateService userStateService;
     private final GearChatMemoryService gearChatMemoryService;
 
     public MessageHandler(
             List<UserStateHandler> stateHandlers,
+            List<PhotoInputHandler> photoHandlers,
             UserStateService userStateService,
             GearChatMemoryService gearChatMemoryService
     ) {
         this.stateHandlers = stateHandlers;
+        this.photoHandlers = photoHandlers;
         this.userStateService = userStateService;
         this.gearChatMemoryService = gearChatMemoryService;
     }
@@ -35,80 +38,53 @@ public class MessageHandler {
         logger.info("Received message from [{}]: {}", chatId, messageText);
 
         return switch (messageText) {
+            case "📸 Редагування Фото" -> new SendMessage(chatId, "Надішліть фото, яке потрібно відредагувати 📷");
 
-            case "📸 Редагування Фото" -> {
-                logger.debug("User [{}] selected: Редагування Фото", chatId);
+            case "🎯 Ідеї для фотосесії" -> new SendMessage(chatId, "Напишіть тему або побажання для фотосесії 📝");
 
-                yield new SendMessage(chatId,
-                        "Надішліть фото, яке потрібно відредагувати 📷");
-            }
-
-            case "🎯 Ідеї для фотосесії" -> {
-                logger.debug("User [{}] selected: Ідеї для фотосесії", chatId);
-
-                yield new SendMessage(chatId,
-                        "Напишіть тему або побажання для фотосесії 📝");
-            }
-
-            case "🧠 AI-аналіз Фото" -> {
-                logger.debug("User [{}] selected: AI-аналіз Фото", chatId);
-
-                yield new SendMessage(chatId,
-                        "Надішліть фото для аналізу якості 🤔");
-            }
+            case "🧠 AI-аналіз Фото" -> new SendMessage(chatId, "Надішліть фото для аналізу якості 🤔");
 
             case "🏷️ Хештеги та Опис" -> {
                 userStateService.setUserState(chatId, "CAPTION_MODE");
                 SendMessage msg = new SendMessage(chatId, """
-            ✍️ Надішліть текст або фото (або і те, і те), і я згенерую опис + релевантні хештеги.
-            """);
+                        ✍️ Надішліть фото, а я згенерую опис + релевантні хештеги.
+                        """);
                 msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
                 yield msg;
             }
-
-            case "💰 Прайс-калькулятор" -> {
-                logger.debug("User [{}] selected: Прайс-калькулятор", chatId);
-
-                yield new SendMessage(chatId,
-                        "Введіть тип зйомки та тривалість (наприклад: 'весілля 3 години') 💵");
-            }
+            case "💰 Прайс-калькулятор" ->
+                    new SendMessage(chatId, "Введіть тип зйомки та тривалість (наприклад: 'весілля 3 години') 💵");
 
             case "📷 Підказки по Обладнанню" -> {
-                logger.debug("User [{}] entered GEAR_CHAT_MODE", chatId);
-
                 userStateService.setUserState(chatId, "GEAR_CHAT_MODE");
-                SendMessage msg = new SendMessage(chatId,
-                        "💬 Ви увійшли в режим консультації по техніці. " +
-                                "Напишіть тип зйомки (наприклад: весілля, портрет, зйомка в студії і т.д.).\n" +
-                                "А я підкажу, яке фотообладнання вам найкраще підійде (камера, об’єктив, освітлення, фон).");
+                SendMessage msg = new SendMessage(chatId, """
+                        💬 Ви увійшли в режим консультації по техніці.
+                        Напишіть тип зйомки (наприклад: весілля, портрет, зйомка в студії і т.д.).
+                        А я підкажу, яке фотообладнання вам найкраще підійде (камера, об’єктив, освітлення, фон).
+                        """);
                 msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
                 yield msg;
             }
-
             case "↩ Вийти з режиму" -> {
-                logger.debug("User [{}] exited GEAR_CHAT_MODE", chatId);
-
                 userStateService.clearUserState(chatId);
                 gearChatMemoryService.clearMemory(chatId);
-
                 SendMessage msg = new SendMessage(chatId, "✅ Ви вийшли з режиму консультації.");
                 msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
                 yield msg;
             }
-
             default -> {
                 String state = userStateService.getUserState(chatId);
-                logger.debug("User [{}] in state: {}", chatId, state);
+
+                if (state.equals("CAPTION_MODE")) {
+                    yield new SendMessage(chatId,
+                            "📷 Я можу створити опис тільки для фото. Будь ласка, надішліть зображення.");
+                }
 
                 for (UserStateHandler handler : stateHandlers) {
                     if (handler.supports(state)) {
-                        logger.debug("Delegating to handler: {}", handler.getClass().getSimpleName());
                         yield handler.handle(chatId, messageText);
                     }
                 }
-
-                logger.warn("User [{}] sent unrecognized message outside any handler: {}", chatId, messageText);
-
                 SendMessage msg = new SendMessage(chatId,
                         "🤖 Я поки що розумію тільки команди або натиснення кнопок.");
                 msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
@@ -121,16 +97,14 @@ public class MessageHandler {
         logger.info("Received photo from [{}]", chatId);
 
         String state = userStateService.getUserState(chatId);
-        logger.debug("Current user state for [{}]: {}", chatId, state);
-
-        for (UserStateHandler handler : stateHandlers) {
-            if (handler.supports(state) && handler instanceof PhotoInputHandler photoHandler) {
+        for (PhotoInputHandler handler : photoHandlers) {
+            if (handler.supports(state)) {
                 logger.debug("Delegating photo to handler: {}", handler.getClass().getSimpleName());
-                return photoHandler.handlePhoto(chatId, message);
+                return handler.handlePhoto(chatId, message);
             }
         }
 
-        logger.warn("Received photo from [{}] but no handler matched.", chatId);
+        logger.warn("No handler matched for photo from [{}] in state [{}]", chatId, state);
         SendMessage msg = new SendMessage(chatId,
                 "📷 Надіслане фото не оброблено. Будь ласка, оберіть режим у меню.");
         msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
