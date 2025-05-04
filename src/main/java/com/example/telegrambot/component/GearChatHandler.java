@@ -1,5 +1,6 @@
 package com.example.telegrambot.component;
 
+import com.example.telegrambot.enums.UserState;
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.prompts.PromptTemplates;
@@ -19,7 +20,6 @@ public class GearChatHandler implements UserStateHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GearChatHandler.class);
 
-
     private final ChatClient chatClient;
     private final GearChatMemoryService memoryService;
 
@@ -30,7 +30,7 @@ public class GearChatHandler implements UserStateHandler {
 
     @Override
     public boolean supports(String state) {
-        return "GEAR_CHAT_MODE".equals(state);
+        return state.equals(UserState.GEAR_CHAT_MODE.name());
     }
 
     @Override

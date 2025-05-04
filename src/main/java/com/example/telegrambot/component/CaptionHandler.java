@@ -1,5 +1,6 @@
 package com.example.telegrambot.component;
 
+import com.example.telegrambot.enums.UserState;
 import com.example.telegrambot.interfaces.PhotoInputHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.service.OpenAiVisionService;
@@ -30,7 +31,7 @@ public class CaptionHandler implements PhotoInputHandler {
 
     @Override
     public boolean supports(String state) {
-        return "CAPTION_MODE".equals(state);
+        return state.equals(UserState.CAPTION_MODE.name());
     }
 
     @Override
