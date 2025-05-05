@@ -1,15 +1,15 @@
-package com.example.telegrambot.component;
+package com.example.telegrambot.service;
 
 import com.example.telegrambot.dto.ChatMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 
 import static org.springframework.util.StringUtils.truncate;
 
-@Component
+@Service
 public class GearChatMemoryService {
     private static final Logger logger = LoggerFactory.getLogger(GearChatMemoryService.class);
 

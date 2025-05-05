@@ -1,6 +1,7 @@
 package com.example.telegrambot.component;
 
 import com.example.telegrambot.keyboard.KeyboardFactory;
+import com.example.telegrambot.service.handler.MessageHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

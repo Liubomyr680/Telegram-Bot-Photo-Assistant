@@ -1,19 +1,20 @@
-package com.example.telegrambot.component;
+package com.example.telegrambot.service.handler;
 
 import com.example.telegrambot.enums.UserState;
 import com.example.telegrambot.interfaces.PhotoInputHandler;
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
+import com.example.telegrambot.service.GearChatMemoryService;
 import com.example.telegrambot.service.UserStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.util.List;
 
-@Component
+@Service
 public class MessageHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);

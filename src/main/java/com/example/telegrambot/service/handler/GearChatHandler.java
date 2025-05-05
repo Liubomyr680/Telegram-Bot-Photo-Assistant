@@ -1,21 +1,22 @@
-package com.example.telegrambot.component;
+package com.example.telegrambot.service.handler;
 
+import com.example.telegrambot.dto.ChatMessage;
 import com.example.telegrambot.enums.UserState;
 import com.example.telegrambot.interfaces.UserStateHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.prompts.PromptTemplates;
-import com.example.telegrambot.dto.ChatMessage;
+import com.example.telegrambot.service.GearChatMemoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@Component
+@Service
 public class GearChatHandler implements UserStateHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GearChatHandler.class);
