@@ -6,14 +6,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
-
-import static com.example.telegrambot.prompts.PromptTemplates.PHOTO_DESCRIPTION_PROMPT;
 
 @Service
 public class OpenAiVisionService {
@@ -25,7 +26,7 @@ public class OpenAiVisionService {
     @Value("${spring.ai.openai.api-key}")
     private String openAiApiKey;
 
-    public String generateCaptionFromImageUrl(String imageUrl) {
+    public String generateCaptionFromImageUrl(String imageUrl, String prompt) {
         try {
             RestTemplate restTemplate = new RestTemplate();
 
@@ -36,11 +37,11 @@ public class OpenAiVisionService {
                                     "role", "user",
                                     "content", List.of(
                                             Map.of("type", "image_url", "image_url", Map.of("url", imageUrl)),
-                                            Map.of("type", "text", "text", PHOTO_DESCRIPTION_PROMPT)
+                                            Map.of("type", "text", "text", prompt)
                                     )
                             )
                     ),
-                    "max_tokens", 300,
+                    "max_tokens", 500,
                     "temperature", 0.7
             );
 
@@ -58,7 +59,7 @@ public class OpenAiVisionService {
             return aiResponse.choices().get(0).message().content();
 
         } catch (Exception e) {
-            logger.error("Error generating caption from OpenAI", e);
+            logger.error("❌ Error from OpenAI Vision API", e);
             return "На жаль, сталася помилка під час обробки зображення.";
         }
     }

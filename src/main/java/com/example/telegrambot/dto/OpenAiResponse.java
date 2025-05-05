@@ -15,7 +15,6 @@ public record OpenAiResponse(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Message(
-            String role,
             String content
     ) {}
 }

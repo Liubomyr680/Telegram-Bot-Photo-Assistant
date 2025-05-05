@@ -43,7 +43,7 @@ public class MessageHandler {
 
             case "🎯 Ідеї для фотосесії" -> new SendMessage(chatId, "Напишіть тему або побажання для фотосесії 📝");
 
-            case "🧠 AI-аналіз Фото" -> new SendMessage(chatId, "Надішліть фото для аналізу якості 🤔");
+            case "🧠 AI-аналіз Фото" -> handleAiAnalysisMode(chatId);
 
             case "🏷️ Хештеги та Опис" -> handleCaptionMode(chatId);
 
@@ -79,8 +79,8 @@ public class MessageHandler {
     private SendMessage handleCaptionMode(String chatId) {
         userStateService.setUserState(chatId, UserState.CAPTION_MODE);
         SendMessage msg = new SendMessage(chatId, """
-                        ✍️ Надішліть фото, а я згенерую опис + релевантні хештеги.
-                        """);
+                ✍️ Надішліть фото, а я згенерую опис + релевантні хештеги.
+                """);
         msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
         return msg;
     }
@@ -88,15 +88,23 @@ public class MessageHandler {
     private SendMessage handleGearChatMode(String chatId) {
         userStateService.setUserState(chatId, UserState.GEAR_CHAT_MODE);
         SendMessage msg = new SendMessage(chatId, """
-                        💬 Ви увійшли в режим консультації по техніці.
-                        Напишіть тип зйомки (наприклад: весілля, портрет, зйомка в студії і т.д.).
-                        А я підкажу, яке фотообладнання вам найкраще підійде (камера, об’єктив, освітлення, фон).
-                        """);
+                💬 Ви увійшли в режим консультації по техніці.
+                Напишіть тип зйомки (наприклад: весілля, портрет, зйомка в студії і т.д.).
+                А я підкажу, яке фотообладнання вам найкраще підійде (камера, об’єктив, освітлення, фон).
+                """);
         msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
         return msg;
     }
 
-    private SendMessage handleExitMode(String chatId){
+    private SendMessage handleAiAnalysisMode(String chatId) {
+        userStateService.setUserState(chatId, UserState.AI_ANALYSIS_MODE);
+        SendMessage msg = new SendMessage(chatId,
+                "🧠 Надішліть фото, і я проаналізую його якість, композицію, світло і настрій 📸");
+        msg.setReplyMarkup(KeyboardFactory.exitKeyboard());
+        return msg;
+    }
+
+    private SendMessage handleExitMode(String chatId) {
         userStateService.clearUserState(chatId);
         gearChatMemoryService.clearMemory(chatId);
         SendMessage msg = new SendMessage(chatId, "✅ Ви вийшли з режиму консультації.");
@@ -112,11 +120,17 @@ public class MessageHandler {
                     "📷 Я можу створити опис тільки для фото. Будь ласка, надішліть зображення.");
         }
 
+        if (state == UserState.AI_ANALYSIS_MODE) {
+            return new SendMessage(chatId,
+                    "🧠 Я можу проаналізувати лише фото. Будь ласка, завантажте зображення.");
+        }
+
         for (UserStateHandler handler : stateHandlers) {
             if (handler.supports(state.name())) {
                 return handler.handle(chatId, messageText);
             }
         }
+
         SendMessage msg = new SendMessage(chatId,
                 "🤖 Я поки що розумію тільки команди або натиснення кнопок.");
         msg.setReplyMarkup(KeyboardFactory.mainKeyboard());
