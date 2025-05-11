@@ -2,7 +2,7 @@ package com.example.telegrambot.service.handler;
 
 import com.example.telegrambot.dto.ChatMessage;
 import com.example.telegrambot.enums.UserState;
-import com.example.telegrambot.interfaces.UserStateHandler;
+import com.example.telegrambot.interfaces.InputHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.prompts.PromptTemplates;
 import com.example.telegrambot.service.GearChatMemoryService;
@@ -11,13 +11,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
-public class GearChatHandler implements UserStateHandler {
+public class GearChatHandler implements InputHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GearChatHandler.class);
 
@@ -35,8 +36,8 @@ public class GearChatHandler implements UserStateHandler {
     }
 
     @Override
-    public SendMessage handle(String chatId, String messageText) {
-        String checkPrompt = PromptTemplates.buildRelevancePrompt(messageText);
+    public SendMessage handle(String chatId, Message message) {
+        String checkPrompt = PromptTemplates.buildRelevancePrompt(message.getText());
 
         String relevanceAnswer = Objects.requireNonNull(chatClient.prompt()
                         .user(checkPrompt)
@@ -67,7 +68,7 @@ public class GearChatHandler implements UserStateHandler {
         }
 
         // Додаємо нове питання користувача
-        history.add(new ChatMessage("user", messageText));
+        history.add(new ChatMessage("user", message.getText()));
 
         String fullPrompt = history.stream()
                 .map(m -> m.role() + ": " + m.content())
@@ -82,7 +83,7 @@ public class GearChatHandler implements UserStateHandler {
 
         log.info("AI reply: {}", aiReply);
 
-        memoryService.addMessage(chatId, new ChatMessage("user", messageText));
+        memoryService.addMessage(chatId, new ChatMessage("user", message.getText()));
         memoryService.addMessage(chatId, new ChatMessage("assistant", aiReply));
 
         SendMessage msg = new SendMessage(chatId, aiReply);

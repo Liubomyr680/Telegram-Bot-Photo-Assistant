@@ -1,7 +1,7 @@
 package com.example.telegrambot.service.handler;
 
 import com.example.telegrambot.enums.UserState;
-import com.example.telegrambot.interfaces.PhotoInputHandler;
+import com.example.telegrambot.interfaces.InputHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.prompts.PromptTemplates;
 import com.example.telegrambot.service.OpenAiVisionService;
@@ -17,7 +17,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.Comparator;
 
 @Service
-public class AiAnalysisHandler implements PhotoInputHandler {
+public class AiAnalysisHandler implements InputHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(AiAnalysisHandler.class);
 
@@ -36,7 +36,7 @@ public class AiAnalysisHandler implements PhotoInputHandler {
     }
 
     @Override
-    public SendMessage handlePhoto(String chatId, Message message) {
+    public SendMessage handle(String chatId, Message message) {
         logger.info("Handling photo input from [{}]", chatId);
 
         try {

@@ -1,8 +1,7 @@
 package com.example.telegrambot.service.handler;
 
 import com.example.telegrambot.enums.UserState;
-import com.example.telegrambot.interfaces.PhotoInputHandler;
-import com.example.telegrambot.interfaces.UserStateHandler;
+import com.example.telegrambot.interfaces.InputHandler;
 import com.example.telegrambot.keyboard.KeyboardFactory;
 import com.example.telegrambot.service.GearChatMemoryService;
 import com.example.telegrambot.service.UserStateService;
@@ -19,27 +18,24 @@ public class MessageHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(MessageHandler.class);
 
-    private final List<UserStateHandler> stateHandlers;
-    private final List<PhotoInputHandler> photoHandlers;
+    private final List<InputHandler> handlers;
     private final UserStateService userStateService;
     private final GearChatMemoryService gearChatMemoryService;
 
     public MessageHandler(
-            List<UserStateHandler> stateHandlers,
-            List<PhotoInputHandler> photoHandlers,
+            List<InputHandler> handlers,
             UserStateService userStateService,
             GearChatMemoryService gearChatMemoryService
     ) {
-        this.stateHandlers = stateHandlers;
-        this.photoHandlers = photoHandlers;
+        this.handlers = handlers;
         this.userStateService = userStateService;
         this.gearChatMemoryService = gearChatMemoryService;
     }
 
-    public SendMessage handleTextMessage(String chatId, String messageText) {
-        logger.info("Received message from [{}]: {}", chatId, messageText);
+    public SendMessage handleTextMessage(String chatId, Message messageText) {
+        logger.info("Received message from [{}]: {}", chatId, messageText.getText());
 
-        return switch (messageText) {
+        return switch (messageText.getText()) {
             case "📸 Редагування Фото" -> new SendMessage(chatId, "Надішліть фото, яке потрібно відредагувати 📷");
 
             case "🎯 Ідеї для фотосесії" -> new SendMessage(chatId, "Напишіть тему або побажання для фотосесії 📝");
@@ -63,10 +59,10 @@ public class MessageHandler {
         logger.info("Received photo from [{}]", chatId);
 
         UserState state = userStateService.getUserState(chatId);
-        for (PhotoInputHandler handler : photoHandlers) {
+        for (InputHandler handler : handlers) {
             if (handler.supports(state.name())) {
                 logger.debug("Delegating photo to handler: {}", handler.getClass().getSimpleName());
-                return handler.handlePhoto(chatId, message);
+                return handler.handle(chatId, message);
             }
         }
 
@@ -113,7 +109,7 @@ public class MessageHandler {
         return msg;
     }
 
-    private SendMessage handleFallback(String chatId, String messageText) {
+    private SendMessage handleFallback(String chatId, Message messageText) {
         UserState state = userStateService.getUserState(chatId);
 
         if (state == UserState.CAPTION_MODE) {
@@ -126,7 +122,7 @@ public class MessageHandler {
                     "🧠 Я можу проаналізувати лише фото. Будь ласка, завантажте зображення.");
         }
 
-        for (UserStateHandler handler : stateHandlers) {
+        for (InputHandler handler : handlers) {
             if (handler.supports(state.name())) {
                 return handler.handle(chatId, messageText);
             }

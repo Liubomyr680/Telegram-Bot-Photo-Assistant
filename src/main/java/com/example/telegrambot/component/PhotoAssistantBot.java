@@ -48,7 +48,7 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
                         logger.debug("User [{}] triggered /start command", chatId);
 
                         response = new SendMessage(chatId,
-                                "👋 Вітаю у PicMentorBot!\n\n" +
+                                "👋 Вітаю у PicMentorBot!" +
                                         "Я допоможу вам у світі фотографії! 📸\n" +
                                         "Оберіть функцію нижче для початку 👇");
                         executeSafe(response);
@@ -64,7 +64,7 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
                     }
                     default -> {
                         logger.debug("User [{}] sent message for processing: {}", chatId, userText);
-                        response = messageHandler.handleTextMessage(chatId, userText);
+                        response = messageHandler.handleTextMessage(chatId, message);
                     }
                 }
 
