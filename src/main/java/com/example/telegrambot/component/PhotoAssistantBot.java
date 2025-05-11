@@ -18,7 +18,6 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
     private static final Logger logger = LoggerFactory.getLogger(PhotoAssistantBot.class);
 
     private final String botUsername;
-    private final String botToken;
     private final MessageHandler messageHandler;
 
     public PhotoAssistantBot(
@@ -28,7 +27,6 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
     ) {
         super(new DefaultBotOptions(), botToken);
         this.botUsername = botUsername;
-        this.botToken = botToken;
         this.messageHandler = messageHandler;
     }
 
@@ -89,11 +87,6 @@ public class PhotoAssistantBot extends TelegramLongPollingBot {
     @Override
     public String getBotUsername() {
         return botUsername;
-    }
-
-    @Override
-    public String getBotToken() {
-        return botToken;
     }
 }
 
