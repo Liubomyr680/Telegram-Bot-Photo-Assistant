@@ -9,8 +9,8 @@ public class KeyboardFactory {
 
     public static ReplyKeyboardMarkup mainKeyboard() {
         KeyboardRow row1 = new KeyboardRow();
-        row1.add("📸 Редагування Фото");
-        row1.add("🎯 Ідеї для фотосесії");
+        row1.add("📸 Редагування Фото (функція недостпна)");
+        row1.add("🎯 Ідеї для фотосесії (функція недостпна)");
 
         KeyboardRow row2 = new KeyboardRow();
         row2.add("🧠 AI-аналіз Фото");
@@ -18,7 +18,7 @@ public class KeyboardFactory {
 
         KeyboardRow row3 = new KeyboardRow();
         row3.add("📷 Підказки по Обладнанню");
-        row3.add("💰 Прайс-калькулятор");
+        row3.add("💰 Прайс-калькулятор (функція недостпна)");
 
         List<KeyboardRow> rows = List.of(row1, row2, row3);
 
